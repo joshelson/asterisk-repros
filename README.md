@@ -20,11 +20,41 @@ upstream issue/PR.
 
 ## Adding a new reproducer
 
+```bash
+bin/new-repro.sh <new-bug-name> "Short description of the bug"
 ```
-cp -r _template/ <new-bug-name>/
-# Edit <new-bug-name>/README.md to describe the bug.
-# Edit the configs/scripts to drive the actual repro.
+
+This copies `_template/` to `<new-bug-name>/` and substitutes
+placeholders (`__REPRO_NAME__`, `__REPRO_DESC__`) throughout. The
+result is a complete, working scaffold:
+
 ```
+<new-bug-name>/
+├── README.md                ← prefilled, edit to describe the bug
+├── docker/
+│   ├── Dockerfile.asterisk  ← Debian + asterisk build deps + ODBC drivers
+│   └── docker-compose.yml   ← postgres + asterisk, ASTERISK_SRC overridable
+├── asterisk-config/         ← minimal core asterisk + AMI; add modules you need
+├── loadgen/loadgen.py       ← AMI loadgen, expects UserEvent(repro_result, status: ...)
+├── sql/init.sql             ← postgres seed (or remove the db service if not needed)
+└── scripts/
+    ├── build-asterisk.sh    ← (in-container) full build
+    ├── build-modules.sh     ← (in-container) edit SRC_FILES/MODULE_DIRS for what to rebuild
+    ├── run-asterisk.sh      ← (in-container) start asterisk
+    └── run-matrix.sh        ← (host) buggy/patched matrix; edit `scenarios` array
+```
+
+After scaffolding, customize:
+1. `README.md` — describe the bug, trigger, expected output.
+2. `asterisk-config/modules.conf` — load the modules your bug needs.
+3. `asterisk-config/extensions.conf` — replace the operation under
+   test in the `*-loop` context.
+4. `sql/init.sql` — schemas + seed data (or remove the db service).
+5. `loadgen/loadgen.py` — already generic; only edit if you need
+   different success-detection logic.
+6. `scripts/run-matrix.sh` — edit `scenarios` for what reload
+   targets you want to compare.
+7. Add an entry to this README's "Reproducers" table.
 
 ### What goes in a reproducer
 

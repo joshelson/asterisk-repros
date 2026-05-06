@@ -1,33 +1,41 @@
-# <bug-name>
+# __REPRO_NAME__
 
-One-line description of the bug.
+__REPRO_DESC__
 
 **Upstream issue:** TBD
 **Upstream PR:** TBD
 
 ## TL;DR — what this reproduces
 
-What the bug looks like in production. What conditions trigger it.
-What the user-visible symptom is.
+Replace this paragraph with: what the bug looks like in production,
+what conditions trigger it, what the user-visible symptom is, and what
+log message / metric / observation indicates that the bug fired.
 
 ## Prerequisites
 
-- Docker (or whatever the harness needs).
-- Asterisk source checkout if the harness builds it from source.
-- Anything else specific (a SIP UA, a particular module loaded, etc.).
+- Docker (Docker Desktop on macOS works fine).
+- A local checkout of Asterisk source. By default the harness expects
+  it at `../../asterisk` (a sibling-of-this-repo layout); override
+  with `ASTERISK_SRC=/path/to/asterisk`.
+- (Optional) Anything else this specific reproducer needs — a SIP UA
+  binary, a particular module loaded, etc.
 
 ## Layout
 
 ```
-<bug-name>/
-├── README.md
-├── repro.c                     (optional) standalone model
+__REPRO_NAME__/
+├── README.md                   ← this file
 ├── docker/
-├── asterisk-config/
-├── loadgen/
-├── sql/
+│   ├── Dockerfile.asterisk     ← Linux container with Asterisk build deps
+│   └── docker-compose.yml      ← service stack
+├── asterisk-config/            ← asterisk configs loaded into the container
+├── loadgen/loadgen.py          ← AMI-driven load + reload + measurement
+├── sql/init.sql                ← schemas + seed data (if a DB is needed)
 └── scripts/
-    └── run-matrix.sh           (or whatever entry point)
+    ├── build-asterisk.sh       ← (in-container) full asterisk build
+    ├── build-modules.sh        ← (in-container) rebuild affected modules
+    ├── run-asterisk.sh         ← (in-container) start asterisk
+    └── run-matrix.sh           ← (host) buggy/patched scenario matrix
 ```
 
 ## How to run
@@ -35,20 +43,37 @@ What the user-visible symptom is.
 ```bash
 cd docker
 docker compose up -d
-../scripts/run-matrix.sh
+docker compose exec asterisk /scripts/build-asterisk.sh   # one-time, ~5–15 min
+../scripts/run-matrix.sh                                  # buggy/patched matrix
+```
+
+## Tunables (env vars)
+
+```
+DURATION=25            # seconds per run
+RELOAD_STOP_AFTER=18   # stop reloads after N s; rest is observation tail
+CPS=8                  # originates per second (steady cadence)
+ITERATIONS=1500        # iterations per call
+RELOAD_PERIOD=1.0      # seconds between reloads
 ```
 
 ## Expected output
 
-Show a `RESULT` / `POST_TAIL` line for the buggy case and the patched
-case so reviewers can confirm the bug exists and the fix works.
+After a successful run, `scripts/run-matrix.sh` prints a summary like:
 
 ```
-RESULT label=buggy   fail=N fail_pct=N.NN
-RESULT label=patched fail=0 fail_pct=0.00
+RESULT label=buggy_*    fail=N    fail_pct=N.NN
+RESULT label=patched_*  fail=0    fail_pct=0.00
+
+POST_TAIL label=buggy_*   fail=N    fail_pct=N.NN
+POST_TAIL label=patched_* fail=0    fail_pct=0.00
 ```
+
+`POST_TAIL` is the failure rate in the observation window *after*
+reloads stopped — useful for confirming the system self-heals (or
+doesn't, in the buggy case).
 
 ## Notes
 
-Anything reviewers should know — known limitations, things that are
-deliberately not tested, environment caveats, etc.
+Anything reviewers should know — environment caveats, things that are
+deliberately not tested, known limitations, etc.

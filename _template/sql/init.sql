@@ -1,0 +1,12 @@
+-- Run on first postgres startup. Add the schemas + seed data your
+-- reproducer needs. Delete this file (and the postgres service in
+-- docker-compose.yml) if your reproducer doesn't need a database.
+
+-- Example:
+-- CREATE TABLE IF NOT EXISTS lookup (
+--     key   TEXT PRIMARY KEY,
+--     value TEXT NOT NULL
+-- );
+-- INSERT INTO lookup (key, value) VALUES ('alice', 'a-result')
+-- ON CONFLICT (key) DO NOTHING;
+-- GRANT SELECT ON lookup TO asterisk;

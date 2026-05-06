@@ -1,0 +1,42 @@
+services:
+  # If your reproducer needs a database, uncomment and edit. Otherwise
+  # delete this service and the depends_on below.
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: asterisk
+      POSTGRES_USER: asterisk
+      POSTGRES_PASSWORD: asterisk
+    # Tighten / adjust as needed to make the bug reproducible.
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=15"
+    volumes:
+      - ../sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U asterisk -d asterisk"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+
+  asterisk:
+    build:
+      context: .
+      dockerfile: Dockerfile.asterisk
+    depends_on:
+      db:
+        condition: service_healthy
+    # Asterisk source is bind-mounted so build/patch/rebuild cycles are
+    # incremental. Override ASTERISK_SRC if your asterisk checkout
+    # isn't at the default sibling-of-this-repo location.
+    volumes:
+      - ${ASTERISK_SRC:-../../../asterisk}:/asterisk-src:rw
+      - ../asterisk-config:/etc/asterisk:rw
+      - ../loadgen:/loadgen:ro
+      - ../sql:/sql:ro
+      - ../scripts:/scripts:ro
+    working_dir: /asterisk-src
+    tty: true
+    stdin_open: true
+    command: ["sleep", "infinity"]

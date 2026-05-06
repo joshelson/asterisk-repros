@@ -1,0 +1,54 @@
+# Generic Asterisk-build image. The asterisk source itself is supplied
+# at run time via the bind mount in docker-compose.yml.
+#
+# Add or remove apt packages here based on what your reproducer needs.
+FROM debian:bookworm-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        autoconf automake libtool pkg-config gawk \
+        libedit-dev libjansson-dev libxml2-dev libsqlite3-dev libxslt1-dev \
+        libssl-dev libncurses-dev libnewt-dev uuid-dev \
+        unixodbc unixodbc-dev odbc-postgresql \
+        libpq-dev postgresql-client \
+        python3 python3-pip \
+        git patch curl ca-certificates procps psmisc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Asterisk runtime layout
+RUN mkdir -p /etc/asterisk /var/lib/asterisk /var/log/asterisk \
+             /var/spool/asterisk /var/run/asterisk \
+             /usr/lib/asterisk/modules
+
+# Detect multiarch ODBC driver dir at build time so this works on
+# x86_64 + aarch64 hosts. If your reproducer doesn't need ODBC, you
+# can delete this and the unixODBC apt packages above.
+RUN ARCHDIR=$(dirname "$(find /usr/lib -name psqlodbcw.so 2>/dev/null | head -1)") && \
+    if [ -n "$ARCHDIR" ]; then \
+        printf '%s\n' \
+        '[PostgreSQL]' \
+        'Description=PostgreSQL ODBC driver' \
+        "Driver=$ARCHDIR/psqlodbcw.so" \
+        "Setup=$ARCHDIR/libodbcpsqlS.so" \
+        'UsageCount=1' \
+        > /etc/odbcinst.ini; \
+    fi
+
+# Default DSN (override or replace per-reproducer as needed).
+RUN printf '%s\n' \
+    '[asterisk-pg]' \
+    'Description=Asterisk test DSN' \
+    'Driver=PostgreSQL' \
+    'Servername=db' \
+    'Server=db' \
+    'Port=5432' \
+    'Database=asterisk' \
+    'UserName=asterisk' \
+    'Password=asterisk' \
+    'ReadOnly=No' \
+    'Protocol=13' \
+    > /etc/odbc.ini
+
+WORKDIR /asterisk-src
+CMD ["/bin/bash"]
