@@ -1,0 +1,55 @@
+# Build asterisk from the source tree mounted at /asterisk-src.
+# This image only installs deps and copies in helper scripts; the actual
+# build happens in run.sh inside the container so we can swap patches
+# in/out and rebuild the modules incrementally.
+FROM debian:bookworm-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        autoconf automake libtool pkg-config gawk \
+        libedit-dev libjansson-dev libxml2-dev libsqlite3-dev libxslt1-dev \
+        libssl-dev libncurses-dev libnewt-dev uuid-dev \
+        unixodbc unixodbc-dev odbc-postgresql \
+        libpq-dev postgresql-client \
+        python3 python3-pip \
+        git patch curl ca-certificates procps psmisc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Asterisk runtime layout
+RUN mkdir -p /etc/asterisk /var/lib/asterisk /var/log/asterisk \
+             /var/spool/asterisk /var/run/asterisk \
+             /usr/lib/asterisk/modules
+
+# odbcinst.ini (system-wide ODBC driver registry).
+# Detect the multiarch lib dir at build time so this works on x86_64 + aarch64.
+RUN ARCHDIR=$(dirname "$(find /usr/lib -name psqlodbcw.so | head -1)") && \
+    printf '%s\n' \
+    '[PostgreSQL]' \
+    'Description=PostgreSQL ODBC driver' \
+    "Driver=$ARCHDIR/psqlodbcw.so" \
+    "Setup=$ARCHDIR/libodbcpsqlS.so" \
+    'UsageCount=1' \
+    > /etc/odbcinst.ini
+
+# System DSN (referenced by res_odbc.conf). psqlodbc accepts both
+# Servername and Server; we set both to be safe.
+RUN printf '%s\n' \
+    '[asterisk-pg]' \
+    'Description=Asterisk test DSN' \
+    'Driver=PostgreSQL' \
+    'Servername=db' \
+    'Server=db' \
+    'Port=5432' \
+    'Database=asterisk' \
+    'UserName=asterisk' \
+    'Password=asterisk' \
+    'ReadOnly=No' \
+    'Protocol=13' \
+    > /etc/odbc.ini
+
+# Python deps for the load generator (Asterisk Manager Interface client).
+RUN pip3 install --break-system-packages asterisk-ami==0.1.7
+
+WORKDIR /asterisk-src
+CMD ["/bin/bash"]

@@ -1,0 +1,20 @@
+# Built artifacts from the standalone C reproducers
+**/repro_*
+**/repro_*.dSYM/
+**/*.o
+
+# Run output
+**/*.out
+**/*.log
+**/baseline_*.out
+**/fixed_*.out
+**/buggy_*.out
+**/patched_*.out
+
+# Docker build state
+**/.container-built
+
+# Editor cruft
+.DS_Store
+*.swp
+*~
