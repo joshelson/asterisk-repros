@@ -25,12 +25,15 @@ if [[ ! -f .container-built ]]; then
   echo ">>> running ./configure"
   ./configure --without-asound --without-pri --without-misdn \
     --without-iodbc --with-unixodbc \
-    --disable-xmldoc CFLAGS="-O2"
-  echo ">>> menuselect: enabling res_odbc + func_odbc + chan_pjsip"
+    --enable-dev-mode \
+    CFLAGS="-O2"
+  echo ">>> menuselect: enabling res_odbc + func_odbc + chan_pjsip + TEST_FRAMEWORK"
   make menuselect.makeopts
   ./menuselect/menuselect \
     --enable res_odbc --enable func_odbc \
     --enable res_odbc_transaction --enable chan_pjsip --enable res_pjsip \
+    --enable TEST_FRAMEWORK \
+    --enable test_res_odbc \
     menuselect.makeopts || true
 fi
 
