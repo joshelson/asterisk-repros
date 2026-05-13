@@ -18,6 +18,7 @@ upstream issue/PR.
 |---|---|---|
 | [`res_odbc-reload-under-load/`](./res_odbc-reload-under-load/) | `module reload res_odbc.so` under load disrupts every ODBC consumer (func_odbc, res_config_odbc, PJSIP realtime). | See `res_odbc-reload-under-load/README.md`. Upstream issue + PR linked there. |
 | [`res_odbc-aco-conversion/`](./res_odbc-aco-conversion/) | End-to-end parse-coverage harness for the res_odbc aco-conversion PR. Comprehensive `res_odbc.conf` (~30 sections) + snapshot capture. | See `res_odbc-aco-conversion/README.md`. Reuses the reload-under-load docker stack. |
+| [`jitterbuffer-disable-bridgewait/`](./jitterbuffer-disable-bridgewait/) | `JITTERBUFFER(disabled)=` leaves a closed timer fd on the channel; any subsequent `BridgeWait`/`Wait()` spins at 100% CPU. Tests both `adaptive` and `fixed` JB types. | See `jitterbuffer-disable-bridgewait/README.md`. Fix in `main/abstract_jb.c`. |
 
 ## Adding a new reproducer
 

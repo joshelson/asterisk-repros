@@ -1,0 +1,18 @@
+services:
+  asterisk:
+    build:
+      context: .
+      dockerfile: Dockerfile.asterisk
+    # Asterisk source is bind-mounted so build/patch/rebuild cycles are
+    # incremental. Override ASTERISK_SRC if your asterisk checkout
+    # isn't at the default sibling-of-this-repo location.
+    volumes:
+      - ${ASTERISK_SRC:-../../../asterisk}:/asterisk-src:rw
+      - ../asterisk-config:/etc/asterisk:rw
+      - ../loadgen:/loadgen:ro
+      - ../patches:/patches:ro
+      - ../scripts:/scripts:ro
+    working_dir: /asterisk-src
+    tty: true
+    stdin_open: true
+    command: ["sleep", "infinity"]

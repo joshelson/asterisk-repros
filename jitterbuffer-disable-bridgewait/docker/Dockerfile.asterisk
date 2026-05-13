@@ -1,0 +1,20 @@
+# Asterisk build image for the jitterbuffer-disable-bridgewait reproducer.
+# No database or ODBC deps needed — this bug is pure core/PBX.
+FROM debian:bookworm-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        autoconf automake libtool pkg-config gawk \
+        libedit-dev libjansson-dev libxml2-dev libsqlite3-dev libxslt1-dev \
+        libssl-dev libncurses-dev libnewt-dev uuid-dev \
+        python3 \
+        git patch curl ca-certificates procps psmisc \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /etc/asterisk /var/lib/asterisk /var/log/asterisk \
+             /var/spool/asterisk /var/run/asterisk \
+             /usr/lib/asterisk/modules
+
+WORKDIR /asterisk-src
+CMD ["/bin/bash"]
